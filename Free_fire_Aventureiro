@@ -1,0 +1,654 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+// Definições
+#define MAX_ITENS 10
+
+// Estruturas
+typedef struct {
+    char nome[30];
+    char tipo[20];
+    int quantidade;
+} Item;
+
+typedef struct No {
+    Item dados;
+    struct No* proximo;
+} No;
+
+// Variáveis globais para contagem
+int comparacoes_seq = 0;
+int comparacoes_bin = 0;
+
+// Protótipos das funções
+// Funções comuns
+void limparBuffer();
+void exibirMenuPrincipal();
+void exibirMenuEstrutura();
+
+// Funções para vetor
+void menuVetor();
+void inserirItemVetor(Item inventario[], int *totalItens);
+void removerItemVetor(Item inventario[], int *totalItens);
+void listarItensVetor(Item inventario[], int totalItens);
+void buscarSequencialVetor(Item inventario[], int totalItens);
+void ordenarVetor(Item inventario[], int totalItens);
+void buscarBinariaVetor(Item inventario[], int totalItens);
+
+// Funções para lista encadeada
+void menuListaEncadeada();
+void inserirItemLista(No **inicio);
+void removerItemLista(No **inicio);
+void listarItensLista(No *inicio);
+void buscarSequencialLista(No *inicio);
+void liberarLista(No **inicio);
+
+/**
+ * Função principal: controla o fluxo do programa
+ */
+int main() {
+    int opcao;
+    
+    printf("===========================================\n");
+    printf("   SISTEMA DE INVENTARIO - COMPARADOR\n");
+    printf("        VETOR vs LISTA ENCADEADA\n");
+    printf("===========================================\n\n");
+    
+    do {
+        exibirMenuPrincipal();
+        printf("Escolha uma opcao: ");
+        scanf("%d", &opcao);
+        limparBuffer();
+        
+        printf("\n");
+        
+        switch(opcao) {
+            case 1:
+                menuVetor();
+                break;
+            case 2:
+                menuListaEncadeada();
+                break;
+            case 3:
+                printf("Saindo do sistema...\n");
+                printf("Obrigado por usar o comparador!\n");
+                break;
+            default:
+                printf("[ERRO] Opcao invalida! Tente novamente.\n\n");
+        }
+        
+    } while(opcao != 3);
+    
+    return 0;
+}
+
+/**
+ * Limpa o buffer de entrada
+ */
+void limparBuffer() {
+    int c;
+    while((c = getchar()) != '\n' && c != EOF);
+}
+
+/**
+ * Exibe o menu principal do sistema
+ */
+void exibirMenuPrincipal() {
+    printf("-------------------------------------------\n");
+    printf("MENU PRINCIPAL - ESCOLHA A ESTRUTURA\n");
+    printf("-------------------------------------------\n");
+    printf("1. Trabalhar com VETOR (Lista Sequencial)\n");
+    printf("2. Trabalhar com LISTA ENCADEADA\n");
+    printf("3. Sair\n");
+    printf("-------------------------------------------\n");
+}
+
+/**
+ * Exibe o menu de operações para cada estrutura
+ */
+void exibirMenuEstrutura(const char* estrutura) {
+    printf("-------------------------------------------\n");
+    printf("MENU %s\n", estrutura);
+    printf("-------------------------------------------\n");
+    printf("1. Cadastrar item\n");
+    printf("2. Remover item\n");
+    printf("3. Listar todos os itens\n");
+    printf("4. Busca sequencial por nome\n");
+    if(strcmp(estrutura, "VETOR") == 0) {
+        printf("5. Ordenar itens (Bubble Sort)\n");
+        printf("6. Busca binaria (apos ordenacao)\n");
+        printf("7. Voltar ao menu principal\n");
+    } else {
+        printf("5. Voltar ao menu principal\n");
+    }
+    printf("-------------------------------------------\n");
+}
+
+// =============================================
+// IMPLEMENTAÇÃO COM VETOR (LISTA SEQUENCIAL)
+// =============================================
+
+/**
+ * Menu principal para operações com vetor
+ */
+void menuVetor() {
+    Item inventario[MAX_ITENS];
+    int totalItens = 0;
+    int opcao;
+    int ordenado = 0; // Flag para controlar se o vetor está ordenado
+    
+    do {
+        exibirMenuEstrutura("VETOR");
+        printf("Itens no inventario: %d/%d | Ordenado: %s\n", 
+               totalItens, MAX_ITENS, ordenado ? "SIM" : "NAO");
+        printf("-------------------------------------------\n");
+        printf("Escolha uma opcao: ");
+        scanf("%d", &opcao);
+        limparBuffer();
+        
+        printf("\n");
+        
+        switch(opcao) {
+            case 1:
+                inserirItemVetor(inventario, &totalItens);
+                ordenado = 0; // Inserção desordena o vetor
+                break;
+            case 2:
+                removerItemVetor(inventario, &totalItens);
+                ordenado = 0; // Remoção desordena o vetor
+                break;
+            case 3:
+                listarItensVetor(inventario, totalItens);
+                break;
+            case 4:
+                comparacoes_seq = 0;
+                buscarSequencialVetor(inventario, totalItens);
+                printf("Comparacoes realizadas: %d\n\n", comparacoes_seq);
+                break;
+            case 5:
+                if(totalItens > 0) {
+                    ordenarVetor(inventario, totalItens);
+                    ordenado = 1;
+                    printf("Vetor ordenado com sucesso!\n\n");
+                } else {
+                    printf("[AVISO] Nao ha itens para ordenar.\n\n");
+                }
+                break;
+            case 6:
+                if(ordenado) {
+                    comparacoes_bin = 0;
+                    buscarBinariaVetor(inventario, totalItens);
+                    printf("Comparacoes realizadas: %d\n\n", comparacoes_bin);
+                } else {
+                    printf("[ERRO] Vetor nao esta ordenado! Use a opcao 5 primeiro.\n\n");
+                }
+                break;
+            case 7:
+                printf("Retornando ao menu principal...\n\n");
+                break;
+            default:
+                printf("[ERRO] Opcao invalida! Tente novamente.\n\n");
+        }
+        
+    } while(opcao != 7);
+}
+
+/**
+ * Insere um novo item no vetor
+ */
+void inserirItemVetor(Item inventario[], int *totalItens) {
+    if(*totalItens >= MAX_ITENS) {
+        printf("[AVISO] Inventario cheio! Remova itens antes de adicionar novos.\n\n");
+        return;
+    }
+    
+    Item novoItem;
+    
+    printf("=== CADASTRAR NOVO ITEM (VETOR) ===\n");
+    
+    printf("Nome do item: ");
+    fgets(novoItem.nome, 30, stdin);
+    novoItem.nome[strcspn(novoItem.nome, "\n")] = '\0';
+    
+    if(strlen(novoItem.nome) == 0) {
+        printf("[ERRO] Nome invalido! Operacao cancelada.\n\n");
+        return;
+    }
+    
+    printf("Tipo (arma/municao/cura/ferramenta): ");
+    fgets(novoItem.tipo, 20, stdin);
+    novoItem.tipo[strcspn(novoItem.tipo, "\n")] = '\0';
+    
+    printf("Quantidade: ");
+    scanf("%d", &novoItem.quantidade);
+    limparBuffer();
+    
+    if(novoItem.quantidade <= 0) {
+        printf("[ERRO] Quantidade deve ser maior que zero!\n\n");
+        return;
+    }
+    
+    inventario[*totalItens] = novoItem;
+    (*totalItens)++;
+    
+    printf("\n[SUCESSO] Item '%s' cadastrado com sucesso!\n\n", novoItem.nome);
+}
+
+/**
+ * Remove um item do vetor por nome
+ */
+void removerItemVetor(Item inventario[], int *totalItens) {
+    if(*totalItens == 0) {
+        printf("[AVISO] Inventario vazio! Nao ha itens para remover.\n\n");
+        return;
+    }
+    
+    char nomeBusca[30];
+    int encontrado = 0;
+    
+    printf("=== REMOVER ITEM (VETOR) ===\n");
+    printf("Nome do item a remover: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+    
+    for(int i = 0; i < *totalItens; i++) {
+        if(strcmp(inventario[i].nome, nomeBusca) == 0) {
+            encontrado = 1;
+            
+            for(int j = i; j < *totalItens - 1; j++) {
+                inventario[j] = inventario[j + 1];
+            }
+            
+            (*totalItens)--;
+            printf("\n[SUCESSO] Item '%s' removido do inventario!\n\n", nomeBusca);
+            break;
+        }
+    }
+    
+    if(!encontrado) {
+        printf("\n[ERRO] Item '%s' nao encontrado no inventario.\n\n", nomeBusca);
+    }
+}
+
+/**
+ * Lista todos os itens do vetor
+ */
+void listarItensVetor(Item inventario[], int totalItens) {
+    printf("===========================================\n");
+    printf("   ITENS NO INVENTARIO (VETOR)\n");
+    printf("===========================================\n");
+    
+    if(totalItens == 0) {
+        printf("  [Inventario vazio]\n");
+    } else {
+        printf("%-20s %-15s %s\n", "NOME", "TIPO", "QUANTIDADE");
+        printf("-------------------------------------------\n");
+        
+        for(int i = 0; i < totalItens; i++) {
+            printf("%-20s %-15s %d\n", 
+                   inventario[i].nome, 
+                   inventario[i].tipo, 
+                   inventario[i].quantidade);
+        }
+    }
+    
+    printf("===========================================\n");
+    printf("Total: %d/%d itens\n", totalItens, MAX_ITENS);
+    printf("===========================================\n\n");
+}
+
+/**
+ * Busca sequencial no vetor
+ */
+void buscarSequencialVetor(Item inventario[], int totalItens) {
+    if(totalItens == 0) {
+        printf("[AVISO] Inventario vazio! Nao ha itens para buscar.\n\n");
+        return;
+    }
+    
+    char nomeBusca[30];
+    int encontrado = 0;
+    
+    printf("=== BUSCA SEQUENCIAL (VETOR) ===\n");
+    printf("Nome do item: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+    
+    for(int i = 0; i < totalItens; i++) {
+        comparacoes_seq++;
+        if(strcmp(inventario[i].nome, nomeBusca) == 0) {
+            encontrado = 1;
+            
+            printf("\n=== ITEM ENCONTRADO ===\n");
+            printf("Nome.......: %s\n", inventario[i].nome);
+            printf("Tipo.......: %s\n", inventario[i].tipo);
+            printf("Quantidade.: %d\n", inventario[i].quantidade);
+            printf("Posicao....: %d\n", i + 1);
+            printf("========================\n");
+            break;
+        }
+    }
+    
+    if(!encontrado) {
+        printf("\n[ERRO] Item '%s' nao foi encontrado no inventario.\n", nomeBusca);
+    }
+}
+
+/**
+ * Ordena o vetor usando Bubble Sort
+ */
+void ordenarVetor(Item inventario[], int totalItens) {
+    printf("=== ORDENANDO VETOR (BUBBLE SORT) ===\n");
+    
+    for(int i = 0; i < totalItens - 1; i++) {
+        for(int j = 0; j < totalItens - i - 1; j++) {
+            if(strcmp(inventario[j].nome, inventario[j + 1].nome) > 0) {
+                // Troca os elementos
+                Item temp = inventario[j];
+                inventario[j] = inventario[j + 1];
+                inventario[j + 1] = temp;
+            }
+        }
+    }
+}
+
+/**
+ * Busca binária no vetor (requer vetor ordenado)
+ */
+void buscarBinariaVetor(Item inventario[], int totalItens) {
+    if(totalItens == 0) {
+        printf("[AVISO] Inventario vazio! Nao ha itens para buscar.\n\n");
+        return;
+    }
+    
+    char nomeBusca[30];
+    
+    printf("=== BUSCA BINARIA (VETOR) ===\n");
+    printf("Nome do item: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+    
+    int inicio = 0;
+    int fim = totalItens - 1;
+    int encontrado = 0;
+    
+    while(inicio <= fim) {
+        comparacoes_bin++;
+        int meio = (inicio + fim) / 2;
+        int comparacao = strcmp(inventario[meio].nome, nomeBusca);
+        
+        if(comparacao == 0) {
+            encontrado = 1;
+            printf("\n=== ITEM ENCONTRADO ===\n");
+            printf("Nome.......: %s\n", inventario[meio].nome);
+            printf("Tipo.......: %s\n", inventario[meio].tipo);
+            printf("Quantidade.: %d\n", inventario[meio].quantidade);
+            printf("Posicao....: %d\n", meio + 1);
+            printf("========================\n");
+            break;
+        } else if(comparacao < 0) {
+            inicio = meio + 1;
+        } else {
+            fim = meio - 1;
+        }
+    }
+    
+    if(!encontrado) {
+        printf("\n[ERRO] Item '%s' nao foi encontrado no inventario.\n", nomeBusca);
+    }
+}
+
+// =============================================
+// IMPLEMENTAÇÃO COM LISTA ENCADEADA
+// =============================================
+
+/**
+ * Menu principal para operações com lista encadeada
+ */
+void menuListaEncadeada() {
+    No *inicio = NULL;
+    int opcao;
+    
+    do {
+        exibirMenuEstrutura("LISTA ENCADEADA");
+        
+        // Contar itens na lista
+        int contador = 0;
+        No *atual = inicio;
+        while(atual != NULL) {
+            contador++;
+            atual = atual->proximo;
+        }
+        printf("Itens no inventario: %d/%d\n", contador, MAX_ITENS);
+        printf("-------------------------------------------\n");
+        printf("Escolha uma opcao: ");
+        scanf("%d", &opcao);
+        limparBuffer();
+        
+        printf("\n");
+        
+        switch(opcao) {
+            case 1:
+                inserirItemLista(&inicio);
+                break;
+            case 2:
+                removerItemLista(&inicio);
+                break;
+            case 3:
+                listarItensLista(inicio);
+                break;
+            case 4:
+                comparacoes_seq = 0;
+                buscarSequencialLista(inicio);
+                printf("Comparacoes realizadas: %d\n\n", comparacoes_seq);
+                break;
+            case 5:
+                printf("Retornando ao menu principal...\n\n");
+                liberarLista(&inicio);
+                break;
+            default:
+                printf("[ERRO] Opcao invalida! Tente novamente.\n\n");
+        }
+        
+    } while(opcao != 5);
+}
+
+/**
+ * Insere um novo item na lista encadeada (no início)
+ */
+void inserirItemLista(No **inicio) {
+    // Contar itens atuais
+    int contador = 0;
+    No *atual = *inicio;
+    while(atual != NULL) {
+        contador++;
+        atual = atual->proximo;
+    }
+    
+    if(contador >= MAX_ITENS) {
+        printf("[AVISO] Inventario cheio! Remova itens antes de adicionar novos.\n\n");
+        return;
+    }
+    
+    No *novoNo = (No*)malloc(sizeof(No));
+    if(novoNo == NULL) {
+        printf("[ERRO] Falha na alocacao de memoria!\n\n");
+        return;
+    }
+    
+    printf("=== CADASTRAR NOVO ITEM (LISTA) ===\n");
+    
+    printf("Nome do item: ");
+    fgets(novoNo->dados.nome, 30, stdin);
+    novoNo->dados.nome[strcspn(novoNo->dados.nome, "\n")] = '\0';
+    
+    if(strlen(novoNo->dados.nome) == 0) {
+        printf("[ERRO] Nome invalido! Operacao cancelada.\n\n");
+        free(novoNo);
+        return;
+    }
+    
+    printf("Tipo (arma/municao/cura/ferramenta): ");
+    fgets(novoNo->dados.tipo, 20, stdin);
+    novoNo->dados.tipo[strcspn(novoNo->dados.tipo, "\n")] = '\0';
+    
+    printf("Quantidade: ");
+    scanf("%d", &novoNo->dados.quantidade);
+    limparBuffer();
+    
+    if(novoNo->dados.quantidade <= 0) {
+        printf("[ERRO] Quantidade deve ser maior que zero!\n\n");
+        free(novoNo);
+        return;
+    }
+    
+    // Inserir no início da lista
+    novoNo->proximo = *inicio;
+    *inicio = novoNo;
+    
+    printf("\n[SUCESSO] Item '%s' cadastrado com sucesso!\n\n", novoNo->dados.nome);
+}
+
+/**
+ * Remove um item da lista encadeada por nome
+ */
+void removerItemLista(No **inicio) {
+    if(*inicio == NULL) {
+        printf("[AVISO] Inventario vazio! Nao ha itens para remover.\n\n");
+        return;
+    }
+    
+    char nomeBusca[30];
+    
+    printf("=== REMOVER ITEM (LISTA) ===\n");
+    printf("Nome do item a remover: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+    
+    No *atual = *inicio;
+    No *anterior = NULL;
+    int encontrado = 0;
+    
+    while(atual != NULL) {
+        if(strcmp(atual->dados.nome, nomeBusca) == 0) {
+            encontrado = 1;
+            
+            if(anterior == NULL) {
+                // Remover o primeiro elemento
+                *inicio = atual->proximo;
+            } else {
+                // Remover elemento do meio ou final
+                anterior->proximo = atual->proximo;
+            }
+            
+            free(atual);
+            printf("\n[SUCESSO] Item '%s' removido do inventario!\n\n", nomeBusca);
+            break;
+        }
+        
+        anterior = atual;
+        atual = atual->proximo;
+    }
+    
+    if(!encontrado) {
+        printf("\n[ERRO] Item '%s' nao encontrado no inventario.\n\n", nomeBusca);
+    }
+}
+
+/**
+ * Lista todos os itens da lista encadeada
+ */
+void listarItensLista(No *inicio) {
+    printf("===========================================\n");
+    printf("   ITENS NO INVENTARIO (LISTA ENCADEADA)\n");
+    printf("===========================================\n");
+    
+    if(inicio == NULL) {
+        printf("  [Inventario vazio]\n");
+    } else {
+        printf("%-20s %-15s %s\n", "NOME", "TIPO", "QUANTIDADE");
+        printf("-------------------------------------------\n");
+        
+        No *atual = inicio;
+        int posicao = 1;
+        while(atual != NULL) {
+            printf("%-20s %-15s %d\n", 
+                   atual->dados.nome, 
+                   atual->dados.tipo, 
+                   atual->dados.quantidade);
+            atual = atual->proximo;
+            posicao++;
+        }
+    }
+    
+    // Contar total de itens
+    int totalItens = 0;
+    No *atual = inicio;
+    while(atual != NULL) {
+        totalItens++;
+        atual = atual->proximo;
+    }
+    
+    printf("===========================================\n");
+    printf("Total: %d/%d itens\n", totalItens, MAX_ITENS);
+    printf("===========================================\n\n");
+}
+
+/**
+ * Busca sequencial na lista encadeada
+ */
+void buscarSequencialLista(No *inicio) {
+    if(inicio == NULL) {
+        printf("[AVISO] Inventario vazio! Nao ha itens para buscar.\n\n");
+        return;
+    }
+    
+    char nomeBusca[30];
+    int encontrado = 0;
+    int posicao = 1;
+    
+    printf("=== BUSCA SEQUENCIAL (LISTA) ===\n");
+    printf("Nome do item: ");
+    fgets(nomeBusca, 30, stdin);
+    nomeBusca[strcspn(nomeBusca, "\n")] = '\0';
+    
+    No *atual = inicio;
+    while(atual != NULL) {
+        comparacoes_seq++;
+        if(strcmp(atual->dados.nome, nomeBusca) == 0) {
+            encontrado = 1;
+            
+            printf("\n=== ITEM ENCONTRADO ===\n");
+            printf("Nome.......: %s\n", atual->dados.nome);
+            printf("Tipo.......: %s\n", atual->dados.tipo);
+            printf("Quantidade.: %d\n", atual->dados.quantidade);
+            printf("Posicao....: %d\n", posicao);
+            printf("========================\n");
+            break;
+        }
+        
+        atual = atual->proximo;
+        posicao++;
+    }
+    
+    if(!encontrado) {
+        printf("\n[ERRO] Item '%s' nao foi encontrado no inventario.\n", nomeBusca);
+    }
+}
+
+/**
+ * Libera toda a memória alocada para a lista encadeada
+ */
+void liberarLista(No **inicio) {
+    No *atual = *inicio;
+    No *proximo;
+    
+    while(atual != NULL) {
+        proximo = atual->proximo;
+        free(atual);
+        atual = proximo;
+    }
+    
+    *inicio = NULL;
+}
