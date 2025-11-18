@@ -5,12 +5,7 @@
 // Definição da capacidade máxima do inventário
 #define MAX_ITENS 10
 
-/**
- * Struct Item: representa um item do inventário
- * - nome: identificador do item (até 30 caracteres)
- * - tipo: categoria do item (arma, munição, cura, ferramenta)
- * - quantidade: número de unidades disponíveis
- */
+
 typedef struct {
     char nome[30];
     char tipo[20];
